@@ -76,6 +76,8 @@ import library.sai_model_spec as sai_model_spec
 import library.deepspeed_utils as deepspeed_utils
 from library.utils import setup_logging, resize_image, validate_interpolation_fn
 
+import library.mep as mep
+
 setup_logging()
 import logging
 
@@ -788,7 +790,7 @@ class BaseDataset(torch.utils.data.Dataset):
     def set_current_epoch(self, epoch):
         if not self.current_epoch == epoch:  # epochが切り替わったらバケツをシャッフルする
             if epoch > self.current_epoch:
-                logger.info("epoch is incremented. current_epoch: {}, epoch: {}".format(self.current_epoch, epoch))
+                # logger.info("epoch is incremented. current_epoch: {}, epoch: {}".format(self.current_epoch, epoch))
                 num_epochs = epoch - self.current_epoch
                 for _ in range(num_epochs):
                     self.current_epoch += 1
@@ -2029,8 +2031,15 @@ class DreamBoothDataset(BaseDataset):
                 logger.warning(f"not directory: {subset.image_dir}")
                 return [], [], []
 
-            info_cache_file = os.path.join(subset.image_dir, self.IMAGE_INFO_CACHE_FILE)
+            info_cache_file: str = os.path.join(subset.image_dir, self.IMAGE_INFO_CACHE_FILE)
             use_cached_info_for_subset = subset.cache_info
+            if use_cached_info_for_subset:
+                mep_cache_file: str = os.path.join(subset.image_dir, mep.MetadataFilename)
+                if not os.path.isfile(info_cache_file) and os.path.isfile(mep_cache_file):
+                    logger.info(f"【】】】】 Using MEP metadata file.")
+                    if mep.cipher is None:
+                        raise Exception("【】】】】 Cipher is None!!!! please pass mep_key")
+                    info_cache_file = mep_cache_file
             if use_cached_info_for_subset:
                 logger.info(
                     f"using cached image info for this subset / このサブセットで、キャッシュされた画像情報を使います: {info_cache_file}"
@@ -2043,13 +2052,36 @@ class DreamBoothDataset(BaseDataset):
                     use_cached_info_for_subset = False
 
             if use_cached_info_for_subset:
-                # json: {`img_path`:{"caption": "caption...", "resolution": [width, height]}, ...}
-                with open(info_cache_file, "r", encoding="utf-8") as f:
-                    metas = json.load(f)
-                img_paths = list(metas.keys())
-                sizes: List[Optional[Tuple[int, int]]] = [meta["resolution"] for meta in metas.values()]
+                if info_cache_file.endswith(mep.FileSuffix):
+                    mepJson = mep.ReadJSON(info_cache_file)
+                    fn1 = os.path.join(subset.image_dir, list(mepJson.keys())[0])
+                    # try read one image
+                    _ = mep.ReadImage(fn1)
+                    metas = {}
+                    for key, item in mepJson.items():
+                        fn = os.path.join(subset.image_dir, key)
+                        metas[fn] = item
+                    logger.info(
+                        f"【【【】】MEP ReadJSON: Got images: {len(metas)}"
+                    )
+                else:
+                    # json: {`img_path`:{"caption": "caption...", "resolution": [width, height]}, ...}
+                    with open(info_cache_file, "r", encoding="utf-8") as f:
+                        metas = json.load(f)
+                    # img_paths = list(metas.keys())
+                    # sizes = [meta["resolution"] for meta in metas.values()]
 
                 # we may need to check image size and existence of image files, but it takes time, so user should check it before training
+                img_paths = []
+                sizes = []
+                captions = []
+                missing_captions = []
+                for key, value in metas.items():
+                    img_paths.append(key)
+                    sizes.append(value["resolution"])
+                    captions.append(value["caption"])
+                    if value["caption"] is None or value["caption"] == "":
+                        missing_captions.append(key)
             else:
                 img_paths = glob_images(subset.image_dir, "*")
                 sizes: List[Optional[Tuple[int, int]]] = [None] * len(img_paths)
@@ -2132,8 +2164,9 @@ class DreamBoothDataset(BaseDataset):
             logger.info(f"found directory {subset.image_dir} contains {len(img_paths)} image files")
 
             if use_cached_info_for_subset:
-                captions = [metas[img_path]["caption"] for img_path in img_paths]
-                missing_captions = [img_path for img_path, caption in zip(img_paths, captions) if caption is None or caption == ""]
+                pass
+                # captions = [meta["caption"] for meta in metas.values()]
+                # missing_captions = [img_path for img_path, caption in zip(img_paths, captions) if caption is None or caption == ""]
             else:
                 # 画像ファイルごとにプロンプトを読み込み、もしあればそちらを使う
                 captions = []
@@ -3058,6 +3091,22 @@ def load_arbitrary_dataset(args, tokenizer=None) -> MinimalDataset:
     return train_dataset_group
 
 
+def load_image_wrapper(func):
+    def wrapper(image_path: str, alpha=False):
+        if not image_path.endswith(mep.FileSuffix):
+            return func(image_path, alpha)
+        image = mep.ReadImage(image_path)
+        if alpha:
+            if not image.mode == "RGBA":
+                image = image.convert("RGBA")
+        else:
+            if not image.mode == "RGB":
+                image = image.convert("RGB")
+        img = np.array(image, np.uint8)
+        return img
+    return wrapper
+
+@load_image_wrapper
 def load_image(image_path, alpha=False):
     try:
         with Image.open(image_path) as image:
