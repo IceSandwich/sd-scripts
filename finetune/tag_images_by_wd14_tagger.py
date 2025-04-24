@@ -3,6 +3,9 @@ import csv
 import os
 from pathlib import Path
 
+import sys
+sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), '..'))
+
 import cv2
 import numpy as np
 import torch

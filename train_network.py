@@ -8,6 +8,7 @@ import time
 import json
 from multiprocessing import Value
 import toml
+import library.mep as mep
 
 from tqdm import tqdm
 
@@ -140,6 +141,7 @@ class NetworkTrainer:
         train_util.verify_training_args(args)
         train_util.prepare_dataset_args(args, True)
         deepspeed_utils.prepare_deepspeed_args(args)
+        mep.Init(args.mep_key)
         setup_logging(args, reset=True)
 
         cache_latents = args.cache_latents
@@ -1124,6 +1126,7 @@ def setup_parser() -> argparse.ArgumentParser:
     train_util.add_optimizer_arguments(parser)
     config_util.add_config_arguments(parser)
     custom_train_functions.add_custom_train_arguments(parser)
+    parser.add_argument("--mep_key", type=str, default=None)
 
     parser.add_argument(
         "--no_metadata", action="store_true", help="do not save metadata in output model / メタデータを出力先モデルに保存しない"

@@ -6,3 +6,10 @@ venv
 build
 .vscode
 wandb
+
+
+samples
+!!RUN
+/models
+/working
+/!!RUN
