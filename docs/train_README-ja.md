@@ -8,18 +8,16 @@ __ドキュメント更新中のため記述に誤りがあるかもしれませ
 
 あらかじめこのリポジトリのREADMEを参照し、環境整備を行ってください。
 
-
 以下について説明します。
 
 1. 学習データの準備について（設定ファイルを用いる新形式）
-1. 学習で使われる用語のごく簡単な解説
-1. 以前の指定形式（設定ファイルを用いずコマンドラインから指定）
-1. 学習途中のサンプル画像生成
-1. 各スクリプトで共通の、よく使われるオプション
-1. fine tuning 方式のメタデータ準備：キャプションニングなど
+2. 学習で使われる用語のごく簡単な解説
+3. 以前の指定形式（設定ファイルを用いずコマンドラインから指定）
+4. 学習途中のサンプル画像生成
+5. 各スクリプトで共通の、よく使われるオプション
+6. fine tuning 方式のメタデータ準備：キャプションニングなど
 
 1.だけ実行すればとりあえず学習は可能です（学習については各スクリプトのドキュメントを参照）。2.以降は必要に応じて参照してください。
-
 
 # 学習データの準備について
 
@@ -30,25 +28,25 @@ __ドキュメント更新中のため記述に誤りがあるかもしれませ
 学習時には、モデルに学ばせる画像データを整理し、スクリプトに対して指定する必要があります。学習データの数、学習対象、キャプション（画像の説明）が用意できるか否かなどにより、いくつかの方法で学習データを指定できます。以下の方式があります（それぞれの名前は一般的なものではなく、当リポジトリ独自の定義です）。正則化画像については後述します。
 
 1. DreamBooth、class+identifier方式（正則化画像使用可）
-
+   
     特定の単語 (identifier) に学習対象を紐づけるように学習します。キャプションを用意する必要はありません。たとえば特定のキャラを学ばせる場合に使うとキャプションを用意する必要がない分、手軽ですが、髪型や服装、背景など学習データの全要素が identifier に紐づけられて学習されるため、生成時のプロンプトで服が変えられない、といった事態も起こりえます。
 
-1. DreamBooth、キャプション方式（正則化画像使用可）
-
+2. DreamBooth、キャプション方式（正則化画像使用可）
+   
     画像ごとにキャプションが記録されたテキストファイルを用意して学習します。たとえば特定のキャラを学ばせると、画像の詳細をキャプションに記述することで（白い服を着たキャラA、赤い服を着たキャラA、など）キャラとそれ以外の要素が分離され、より厳密にモデルがキャラだけを学ぶことが期待できます。
 
-1. fine tuning方式（正則化画像使用不可）
-
+3. fine tuning方式（正則化画像使用不可）
+   
     あらかじめキャプションをメタデータファイルにまとめます。タグとキャプションを分けて管理したり、学習を高速化するためlatentsを事前キャッシュしたりなどの機能をサポートします（いずれも別文書で説明しています）。（fine tuning方式という名前ですが fine tuning 以外でも使えます。）
 
 学習したいものと使用できる指定方法の組み合わせは以下の通りです。
 
-| 学習対象または方法 | スクリプト | DB / class+identifier | DB / キャプション | fine tuning |
-| ----- | ----- | ----- | ----- | ----- |
-| モデルをfine tuning | `fine_tune.py`| x | x | o |
-| モデルをDreamBooth | `train_db.py`| o | o | x |
-| LoRA | `train_network.py`| o | o | o |
-| Textual Invesion | `train_textual_inversion.py`| o | o | o |
+| 学習対象または方法        | スクリプト                        | DB / class+identifier | DB / キャプション | fine tuning |
+| ---------------- | ---------------------------- | --------------------- | ----------- | ----------- |
+| モデルをfine tuning  | `fine_tune.py`               | x                     | x           | o           |
+| モデルをDreamBooth   | `train_db.py`                | o                     | o           | x           |
+| LoRA             | `train_network.py`           | o                     | o           | o           |
+| Textual Invesion | `train_textual_inversion.py` | o                     | o           | o           |
 
 ## どれを選ぶか
 
@@ -130,23 +128,23 @@ batch_size = 4                              # バッチサイズ
 基本的には以下の場所のみ書き換えれば学習できます。
 
 1. 学習解像度
-
+   
     数値1つを指定すると正方形（`512`なら512x512）、鍵カッコカンマ区切りで2つ指定すると横×縦（`[512,768]`なら512x768）になります。SD1.x系ではもともとの学習解像度は512です。`[512,768]` 等の大きめの解像度を指定すると縦長、横長画像生成時の破綻を小さくできるかもしれません。SD2.x 768系では `768` です。
 
-1. バッチサイズ
-
+2. バッチサイズ
+   
     同時に何件のデータを学習するかを指定します。GPUのVRAMサイズ、学習解像度によって変わってきます。詳しくは後述します。またfine tuning/DreamBooth/LoRA等でも変わってきますので各スクリプトの説明もご覧ください。
 
-1. フォルダ指定
-
+3. フォルダ指定
+   
     学習用画像、正則化画像（使用する場合のみ）のフォルダを指定します。画像データが含まれているフォルダそのものを指定します。
 
-1. identifier と class の指定
-
+4. identifier と class の指定
+   
     前述のサンプルの通りです。
 
-1. 繰り返し回数
-
+5. 繰り返し回数
+   
     後述します。
 
 ### 繰り返し回数について
@@ -201,12 +199,16 @@ batch_size = 4                              # バッチサイズ
 基本的には以下を場所のみ書き換えれば学習できます。特に記述がない部分は class+identifier 方式と同じです。
 
 1. 学習解像度
-1. バッチサイズ
-1. フォルダ指定
-1. キャプションファイルの拡張子
 
+2. バッチサイズ
+
+3. フォルダ指定
+
+4. キャプションファイルの拡張子
+   
     任意の拡張子を指定できます。
-1. 繰り返し回数
+
+5. 繰り返し回数
 
 ## step 3. 学習
 
@@ -240,12 +242,14 @@ batch_size = 4                                      # バッチサイズ
 基本的には以下を場所のみ書き換えれば学習できます。特に記述がない部分は DreamBooth, class+identifier 方式と同じです。
 
 1. 学習解像度
-1. バッチサイズ
-1. フォルダ指定
-1. メタデータファイル名
 
+2. バッチサイズ
+
+3. フォルダ指定
+
+4. メタデータファイル名
+   
     後述の方法で作成したメタデータファイルを指定します。
-
 
 ## step 3. 学習
 
@@ -349,7 +353,6 @@ classがひとつで対象が複数の場合、正則化画像フォルダはひ
 
 ![image](https://user-images.githubusercontent.com/52813779/210770897-329758e5-3675-49f1-b345-c135f1725832.png)
 
-
 ### step 3. 学習の実行
 
 各学習スクリプトを実行します。 `--train_data_dir` オプションで前述の学習用データのフォルダを（__画像を含むフォルダではなく、その親フォルダ__）、`--reg_data_dir` オプションで正則化画像のフォルダ（__画像を含むフォルダではなく、その親フォルダ__）を指定してください。
@@ -371,19 +374,19 @@ classがひとつで対象が複数の場合、正則化画像フォルダはひ
 学習中のモデルで試しに画像生成することで学習の進み方を確認できます。学習スクリプトに以下のオプションを指定します。
 
 - `--sample_every_n_steps` / `--sample_every_n_epochs`
-    
+  
     サンプル出力するステップ数またはエポック数を指定します。この数ごとにサンプル出力します。両方指定するとエポック数が優先されます。
 
 - `--sample_at_first`
-    
+  
     学習開始前にサンプル出力します。学習前との比較ができます。
 
 - `--sample_prompts`
-
+  
     サンプル出力用プロンプトのファイルを指定します。
 
 - `--sample_sampler`
-
+  
     サンプル出力に使うサンプラーを指定します。
     `'ddim', 'pndm', 'heun', 'dpmsolver', 'dpmsolver++', 'dpmsingle', 'k_lms', 'k_euler', 'k_euler_a', 'k_dpm_2', 'k_dpm_2_a'`が選べます。
 
@@ -408,7 +411,6 @@ masterpiece, best quality, 1boy, in business suit, standing at street, looking b
 - `--l` 生成画像のCFG scaleを指定します。
 - `--s` 生成時のステップ数を指定します。
 
-
 # 各スクリプトで共通の、よく使われるオプション
 
 スクリプトの更新後、ドキュメントの更新が追い付いていない場合があります。その場合は `--help` オプションで使用できるオプションを確認してください。
@@ -416,238 +418,243 @@ masterpiece, best quality, 1boy, in business suit, standing at street, looking b
 ## 学習に使うモデル指定
 
 - `--v2` / `--v_parameterization`
-    
+  
     学習対象モデルとしてHugging Faceのstable-diffusion-2-base、またはそこからのfine tuningモデルを使う場合（推論時に `v2-inference.yaml` を使うように指示されているモデルの場合）は `--v2` オプションを、stable-diffusion-2や768-v-ema.ckpt、およびそれらのfine tuningモデルを使う場合（推論時に `v2-inference-v.yaml` を使うモデルの場合）は `--v2` と `--v_parameterization` の両方のオプションを指定してください。
-
+  
     Stable Diffusion 2.0では大きく以下の点が変わっています。
-
-    1. 使用するTokenizer
-    2. 使用するText Encoderおよび使用する出力層（2.0は最後から二番目の層を使う）
-    3. Text Encoderの出力次元数（768->1024）
-    4. U-Netの構造（CrossAttentionのhead数など）
-    5. v-parameterization（サンプリング方法が変更されているらしい）
-
-    このうちbaseでは1～4が、baseのつかない方（768-v）では1～5が採用されています。1～4を有効にするのがv2オプション、5を有効にするのがv_parameterizationオプションです。
+  
+  1. 使用するTokenizer
+  
+  2. 使用するText Encoderおよび使用する出力層（2.0は最後から二番目の層を使う）
+  
+  3. Text Encoderの出力次元数（768->1024）
+  
+  4. U-Netの構造（CrossAttentionのhead数など）
+  
+  5. v-parameterization（サンプリング方法が変更されているらしい）
+     
+     このうちbaseでは1～4が、baseのつかない方（768-v）では1～5が採用されています。1～4を有効にするのがv2オプション、5を有効にするのがv_parameterizationオプションです。
 
 - `--pretrained_model_name_or_path` 
-    
+  
     追加学習を行う元となるモデルを指定します。Stable Diffusionのcheckpointファイル（.ckptまたは.safetensors）、Diffusersのローカルディスクにあるモデルディレクトリ、DiffusersのモデルID（"stabilityai/stable-diffusion-2"など）が指定できます。
 
 ## 学習に関する設定
 
 - `--output_dir` 
-
+  
     学習後のモデルを保存するフォルダを指定します。
-    
-- `--output_name` 
-    
-    モデルのファイル名を拡張子を除いて指定します。
-    
-- `--dataset_config` 
 
+- `--output_name` 
+  
+    モデルのファイル名を拡張子を除いて指定します。
+
+- `--dataset_config` 
+  
     データセットの設定を記述した `.toml` ファイルを指定します。
 
 - `--max_train_steps` / `--max_train_epochs`
-
+  
     学習するステップ数やエポック数を指定します。両方指定するとエポック数のほうが優先されます。
 
 - `--mixed_precision`
-
+  
     省メモリ化のため mixed precision （混合精度）で学習します。`--mixed_precision="fp16"` のように指定します。mixed precision なし（デフォルト）と比べて精度が低くなる可能性がありますが、学習に必要なGPUメモリ量が大きく減ります。
-    
+  
     （RTX30 シリーズ以降では `bf16` も指定できます。環境整備時にaccelerateに行った設定と合わせてください）。
-    
-- `--gradient_checkpointing`
 
+- `--gradient_checkpointing`
+  
     学習時の重みの計算をまとめて行うのではなく少しずつ行うことで、学習に必要なGPUメモリ量を減らします。オンオフは精度には影響しませんが、オンにするとバッチサイズを大きくできるため、そちらでの影響はあります。
-    
+  
     また一般的にはオンにすると速度は低下しますが、バッチサイズを大きくできるので、トータルでの学習時間はむしろ速くなるかもしれません。
 
 - `--xformers` / `--mem_eff_attn`
-
+  
     xformersオプションを指定するとxformersのCrossAttentionを用います。xformersをインストールしていない場合やエラーとなる場合（環境にもよりますが `mixed_precision="no"` の場合など）、代わりに `mem_eff_attn` オプションを指定すると省メモリ版CrossAttentionを使用します（xformersよりも速度は遅くなります）。
 
 - `--clip_skip`
-    
+  
     `2` を指定すると、Text Encoder (CLIP) の後ろから二番目の層の出力を用います。1またはオプション省略時は最後の層を用います。
-
+  
     ※SD2.0はデフォルトで後ろから二番目の層を使うため、SD2.0の学習では指定しないでください。
-
+  
     学習対象のモデルがもともと二番目の層を使うように学習されている場合は、2を指定するとよいでしょう。
-
+  
     そうではなく最後の層を使用していた場合はモデル全体がそれを前提に学習されています。そのため改めて二番目の層を使用して学習すると、望ましい学習結果を得るにはある程度の枚数の教師データ、長めの学習が必要になるかもしれません。
 
 - `--max_token_length`
-
+  
     デフォルトは75です。`150` または `225` を指定することでトークン長を拡張して学習できます。長いキャプションで学習する場合に指定してください。
-    
+  
     ただし学習時のトークン拡張の仕様は Automatic1111 氏のWeb UIとは微妙に異なるため（分割の仕様など）、必要なければ75で学習することをお勧めします。
-
+  
     clip_skipと同様に、モデルの学習状態と異なる長さで学習するには、ある程度の教師データ枚数、長めの学習時間が必要になると思われます。
 
 - `--weighted_captions`
-
+  
     指定するとAutomatic1111氏のWeb UIと同様の重み付きキャプションが有効になります。「Textual Inversion と XTI」以外の学習に使用できます。キャプションだけでなく DreamBooth 手法の token string でも有効です。
-
+  
     重みづけキャプションの記法はWeb UIとほぼ同じで、(abc)や[abc]、(abc:1.23)などが使用できます。入れ子も可能です。括弧内にカンマを含めるとプロンプトのshuffle/dropoutで括弧の対応付けがおかしくなるため、括弧内にはカンマを含めないでください。
 
 - `--persistent_data_loader_workers`
-
+  
     Windows環境で指定するとエポック間の待ち時間が大幅に短縮されます。
 
 - `--max_data_loader_n_workers`
-
+  
     データ読み込みのプロセス数を指定します。プロセス数が多いとデータ読み込みが速くなりGPUを効率的に利用できますが、メインメモリを消費します。デフォルトは「`8` または `CPU同時実行スレッド数-1` の小さいほう」なので、メインメモリに余裕がない場合や、GPU使用率が90%程度以上なら、それらの数値を見ながら `2` または `1` 程度まで下げてください。
 
 - `--logging_dir` / `--log_prefix`
-
+  
     学習ログの保存に関するオプションです。logging_dirオプションにログ保存先フォルダを指定してください。TensorBoard形式のログが保存されます。
-
+  
     たとえば--logging_dir=logsと指定すると、作業フォルダにlogsフォルダが作成され、その中の日時フォルダにログが保存されます。
     また--log_prefixオプションを指定すると、日時の前に指定した文字列が追加されます。「--logging_dir=logs --log_prefix=db_style1_」などとして識別用にお使いください。
-
+  
     TensorBoardでログを確認するには、別のコマンドプロンプトを開き、作業フォルダで以下のように入力します。
-
-    ```
-    tensorboard --logdir=logs
-    ```
-
+  
+  ```
+  tensorboard --logdir=logs
+  ```
+  
     （tensorboardは環境整備時にあわせてインストールされると思いますが、もし入っていないなら `pip install tensorboard` で入れてください。）
-
+  
     その後ブラウザを開き、http://localhost:6006/ へアクセスすると表示されます。
 
 - `--log_with` / `--log_tracker_name`
-
+  
     学習ログの保存に関するオプションです。`tensorboard` だけでなく `wandb`への保存が可能です。詳細は [PR#428](https://github.com/kohya-ss/sd-scripts/pull/428)をご覧ください。
 
 - `--noise_offset`
-
+  
     こちらの記事の実装になります: https://www.crosslabs.org//blog/diffusion-with-offset-noise
-    
+  
     全体的に暗い、明るい画像の生成結果が良くなる可能性があるようです。LoRA学習でも有効なようです。`0.1` 程度の値を指定するとよいようです。
 
 - `--adaptive_noise_scale` （実験的オプション）
-
+  
     Noise offsetの値を、latentsの各チャネルの平均値の絶対値に応じて自動調整するオプションです。`--noise_offset` と同時に指定することで有効になります。Noise offsetの値は `noise_offset + abs(mean(latents, dim=(2,3))) * adaptive_noise_scale` で計算されます。latentは正規分布に近いためnoise_offsetの1/10～同程度の値を指定するとよいかもしれません。
-
+  
     負の値も指定でき、その場合はnoise offsetは0以上にclipされます。
 
 - `--multires_noise_iterations` / `--multires_noise_discount`
-    
+  
     Multi resolution noise (pyramid noise)の設定です。詳細は [PR#471](https://github.com/kohya-ss/sd-scripts/pull/471) およびこちらのページ [Multi-Resolution Noise for Diffusion Model Training](https://wandb.ai/johnowhitaker/multires_noise/reports/Multi-Resolution-Noise-for-Diffusion-Model-Training--VmlldzozNjYyOTU2) を参照してください。
-    
+  
     `--multires_noise_iterations` に数値を指定すると有効になります。6~10程度の値が良いようです。`--multires_noise_discount` に0.1~0.3 程度の値（LoRA学習等比較的データセットが小さい場合のPR作者の推奨）、ないしは0.8程度の値（元記事の推奨）を指定してください（デフォルトは 0.3）。
 
 - `--debug_dataset`
-
+  
     このオプションを付けることで学習を行う前に事前にどのような画像データ、キャプションで学習されるかを確認できます。Escキーを押すと終了してコマンドラインに戻ります。`S`キーで次のステップ（バッチ）、`E`キーで次のエポックに進みます。
-
+  
     ※Linux環境（Colabを含む）では画像は表示されません。
 
 - `--vae`
-
+  
     vaeオプションにStable Diffusionのcheckpoint、VAEのcheckpointファイル、DiffusesのモデルまたはVAE（ともにローカルまたはHugging FaceのモデルIDが指定できます）のいずれかを指定すると、そのVAEを使って学習します（latentsのキャッシュ時または学習中のlatents取得時）。
-
+  
     DreamBoothおよびfine tuningでは、保存されるモデルはこのVAEを組み込んだものになります。
 
 - `--cache_latents` / `--cache_latents_to_disk`
-
+  
     使用VRAMを減らすためVAEの出力をメインメモリにキャッシュします。`flip_aug` 以外のaugmentationは使えなくなります。また全体の学習速度が若干速くなります。
-
+  
     cache_latents_to_diskを指定するとキャッシュをディスクに保存します。スクリプトを終了し、再度起動した場合もキャッシュが有効になります。
 
 - `--min_snr_gamma`
-
+  
     Min-SNR Weighting strategyを指定します。詳細は[こちら](https://github.com/kohya-ss/sd-scripts/pull/308)を参照してください。論文では`5`が推奨されています。
 
 ## モデルの保存に関する設定
 
 - `--save_precision`
-
+  
     保存時のデータ精度を指定します。save_precisionオプションにfloat、fp16、bf16のいずれかを指定すると、その形式でモデルを保存します（DreamBooth、fine tuningでDiffusers形式でモデルを保存する場合は無効です）。モデルのサイズを削減したい場合などにお使いください。
 
 - `--save_every_n_epochs` / `--save_state` / `--resume`
-
+  
     save_every_n_epochsオプションに数値を指定すると、そのエポックごとに学習途中のモデルを保存します。
-
+  
     save_stateオプションを同時に指定すると、optimizer等の状態も含めた学習状態を合わせて保存します（保存したモデルからも学習再開できますが、それに比べると精度の向上、学習時間の短縮が期待できます）。保存先はフォルダになります。
-    
+  
     学習状態は保存先フォルダに `<output_name>-??????-state`（??????はエポック数）という名前のフォルダで出力されます。長時間にわたる学習時にご利用ください。
-
+  
     保存された学習状態から学習を再開するにはresumeオプションを使います。学習状態のフォルダ（`output_dir` ではなくその中のstateのフォルダ）を指定してください。
-
+  
     なおAcceleratorの仕様により、エポック数、global stepは保存されておらず、resumeしたときにも1からになりますがご容赦ください。
 
 - `--save_every_n_steps`
-
+  
     save_every_n_stepsオプションに数値を指定すると、そのステップごとに学習途中のモデルを保存します。save_every_n_epochsと同時に指定できます。
 
 - `--save_model_as` （DreamBooth, fine tuning のみ）
-
+  
     モデルの保存形式を`ckpt, safetensors, diffusers, diffusers_safetensors` から選べます。
-    
+  
     `--save_model_as=safetensors` のように指定します。Stable Diffusion形式（ckptまたはsafetensors）を読み込み、Diffusers形式で保存する場合、不足する情報はHugging Faceからv1.5またはv2.1の情報を落としてきて補完します。
 
 - `--huggingface_repo_id` 等
-
+  
     huggingface_repo_idが指定されているとモデル保存時に同時にHuggingFaceにアップロードします。アクセストークンの取り扱いに注意してください（HuggingFaceのドキュメントを参照してください）。
-
+  
     他の引数をたとえば以下のように指定してください。
-
-    -   `--huggingface_repo_id "your-hf-name/your-model" --huggingface_path_in_repo "path" --huggingface_repo_type model --huggingface_repo_visibility private --huggingface_token hf_YourAccessTokenHere`
-
+  
+  - `--huggingface_repo_id "your-hf-name/your-model" --huggingface_path_in_repo "path" --huggingface_repo_type model --huggingface_repo_visibility private --huggingface_token hf_YourAccessTokenHere`
+    
     huggingface_repo_visibilityに`public`を指定するとリポジトリが公開されます。省略時または`private`（などpublic以外）を指定すると非公開になります。
-
+    
     `--save_state`オプション指定時に`--save_state_to_huggingface`を指定するとstateもアップロードします。
-
+    
     `--resume`オプション指定時に`--resume_from_huggingface`を指定するとHuggingFaceからstateをダウンロードして再開します。その時の --resumeオプションは `--resume {repo_id}/{path_in_repo}:{revision}:{repo_type}`になります。
     
     例: `--resume_from_huggingface --resume your-hf-name/your-model/path/test-000002-state:main:model`
-
+    
     `--async_upload`オプションを指定するとアップロードを非同期で行います。
 
 ## オプティマイザ関係
 
 - `--optimizer_type`
     --オプティマイザの種類を指定します。以下が指定できます。
-    - AdamW : [torch.optim.AdamW](https://pytorch.org/docs/stable/generated/torch.optim.AdamW.html)
-    - 過去のバージョンのオプション未指定時と同じ
-    - AdamW8bit : 引数は同上
-    - PagedAdamW8bit : 引数は同上
-    - 過去のバージョンの--use_8bit_adam指定時と同じ
-    - Lion : https://github.com/lucidrains/lion-pytorch
-    - 過去のバージョンの--use_lion_optimizer指定時と同じ
-    - Lion8bit : 引数は同上
-    - PagedLion8bit : 引数は同上
-    - SGDNesterov : [torch.optim.SGD](https://pytorch.org/docs/stable/generated/torch.optim.SGD.html), nesterov=True
-    - SGDNesterov8bit : 引数は同上
-    - DAdaptation(DAdaptAdamPreprint) : https://github.com/facebookresearch/dadaptation
-    - DAdaptAdam : 引数は同上
-    - DAdaptAdaGrad : 引数は同上
-    - DAdaptAdan : 引数は同上
-    - DAdaptAdanIP : 引数は同上
-    - DAdaptLion : 引数は同上
-    - DAdaptSGD : 引数は同上
-    - Prodigy : https://github.com/konstmish/prodigy
-    - AdaFactor : [Transformers AdaFactor](https://huggingface.co/docs/transformers/main_classes/optimizer_schedules)
-    - 任意のオプティマイザ
+  
+  - AdamW : [torch.optim.AdamW](https://pytorch.org/docs/stable/generated/torch.optim.AdamW.html)
+  - 過去のバージョンのオプション未指定時と同じ
+  - AdamW8bit : 引数は同上
+  - PagedAdamW8bit : 引数は同上
+  - 過去のバージョンの--use_8bit_adam指定時と同じ
+  - Lion : https://github.com/lucidrains/lion-pytorch
+  - 過去のバージョンの--use_lion_optimizer指定時と同じ
+  - Lion8bit : 引数は同上
+  - PagedLion8bit : 引数は同上
+  - SGDNesterov : [torch.optim.SGD](https://pytorch.org/docs/stable/generated/torch.optim.SGD.html), nesterov=True
+  - SGDNesterov8bit : 引数は同上
+  - DAdaptation(DAdaptAdamPreprint) : https://github.com/facebookresearch/dadaptation
+  - DAdaptAdam : 引数は同上
+  - DAdaptAdaGrad : 引数は同上
+  - DAdaptAdan : 引数は同上
+  - DAdaptAdanIP : 引数は同上
+  - DAdaptLion : 引数は同上
+  - DAdaptSGD : 引数は同上
+  - Prodigy : https://github.com/konstmish/prodigy
+  - AdaFactor : [Transformers AdaFactor](https://huggingface.co/docs/transformers/main_classes/optimizer_schedules)
+  - 任意のオプティマイザ
 
 - `--learning_rate`
-
+  
     学習率を指定します。適切な学習率は学習スクリプトにより異なりますので、それぞれの説明を参照してください。
 
 - `--lr_scheduler` / `--lr_warmup_steps` / `--lr_scheduler_num_cycles` / `--lr_scheduler_power`
   
     学習率のスケジューラ関連の指定です。
-
+  
     lr_schedulerオプションで学習率のスケジューラをlinear, cosine, cosine_with_restarts, polynomial, constant, constant_with_warmup, 任意のスケジューラから選べます。デフォルトはconstantです。
-    
+  
     lr_warmup_stepsでスケジューラのウォームアップ（だんだん学習率を変えていく）ステップ数を指定できます。
-    
+  
     lr_scheduler_num_cycles は cosine with restartsスケジューラでのリスタート回数、lr_scheduler_power は polynomialスケジューラでのpolynomial power です。
-
+  
     詳細については各自お調べください。
-
+  
     任意のスケジューラを使う場合、任意のオプティマイザと同様に、`--scheduler_args`でオプション引数を指定してください。
 
 ### オプティマイザの指定について
@@ -671,7 +678,6 @@ AdaFactorオプティマイザはrelative_step=Trueを指定すると学習率�
 ``torch.optim`` のオプティマイザを使う場合にはクラス名のみを（``--optimizer_type=RMSprop``など）、他のモジュールのオプティマイザを使う時は「モジュール名.クラス名」を指定してください（``--optimizer_type=bitsandbytes.optim.lamb.LAMB``など）。
 
 （内部でimportlibしているだけで動作は未確認です。必要ならパッケージをインストールしてください。）
-
 
 <!-- 
 ## 任意サイズの画像での学習 --resolution
@@ -800,6 +806,7 @@ pip install .
 以上でタグ付けの環境整備は完了です。
 
 ### タグ付けの実施
+
 DeepDanbooruのフォルダに移動し、deepdanbooruを実行してタグ付けを行います。
 
 ```
@@ -835,11 +842,13 @@ Automatic1111氏のWebUIで使用しているtaggerを利用します。こち�
 ### タグ付けの実施
 
 スクリプトを実行してタグ付けを行います。
+
 ```
 python tag_images_by_wd14_tagger.py --batch_size <バッチサイズ> <教師データフォルダ>
 ```
 
 教師データを親フォルダのtrain_dataに置いた場合、以下のようになります。
+
 ```
 python tag_images_by_wd14_tagger.py --batch_size 4 ..\train_data
 ```
@@ -902,12 +911,14 @@ __※in_jsonオプションと書き込み先を都度書き換えて、別の�
 ### タグの前処理
 
 同様にタグもメタデータにまとめます（タグを学習に使わない場合は実行不要です）。
+
 ```
 python merge_dd_tags_to_metadata.py --full_path <教師データフォルダ> 
     --in_json <読み込むメタデータファイル名> <書き込むメタデータファイル名>
 ```
 
 先と同じディレクトリ構成で、meta_cap.jsonを読み、meta_cap_dd.jsonに書きだす場合、以下となります。
+
 ```
 python merge_dd_tags_to_metadata.py --full_path train_data --in_json meta_cap.json meta_cap_dd.json
 ```
@@ -955,6 +966,7 @@ python clean_captions_and_tags.py meta_cap_dd.json meta_clean.json
 あらかじめ画像の潜在表現を取得しディスクに保存しておきます。それにより、学習を高速に進めることができます。あわせてbucketing（教師データをアスペクト比に応じて分類する）を行います。
 
 作業フォルダで以下のように入力してください。
+
 ```
 python prepare_buckets_latents.py --full_path <教師データフォルダ>  
     <読み込むメタデータファイル名> <書き込むメタデータファイル名> 
@@ -979,7 +991,6 @@ python prepare_buckets_latents.py --full_path
 
 --flip_augオプションを指定すると左右反転のaugmentation（データ拡張）を行います。疑似的にデータ量を二倍に増やすことができますが、データが左右対称でない場合に指定すると（例えばキャラクタの外見、髪型など）学習がうまく行かなくなります。
 
-
 （反転した画像についてもlatentsを取得し、\*\_flip.npzファイルを保存する単純な実装です。fline_tune.pyには特にオプション指定は必要ありません。\_flip付きのファイルがある場合、flip付き・なしのファイルを、ランダムに読み込みます。）
 
 バッチサイズはVRAM 12GBでももう少し増やせるかもしれません。
@@ -992,6 +1003,7 @@ python prepare_buckets_latents.py --full_path
 ![bucketingの結果](https://user-images.githubusercontent.com/52813779/208911419-71c00fbb-2ce6-49d5-89b5-b78d7715e441.png)
 
 複数の教師データフォルダがある場合には、full_path引数を指定しつつ、それぞれのフォルダに対して実行してください。
+
 ```
 python prepare_buckets_latents.py --full_path  
     train_data1 meta_clean.json meta_lat1.json model.ckpt 
@@ -1000,9 +1012,8 @@ python prepare_buckets_latents.py --full_path
 python prepare_buckets_latents.py --full_path 
     train_data2 meta_lat1.json meta_lat2.json model.ckpt 
     --batch_size 4 --max_resolution 512,512 --mixed_precision no
-
 ```
+
 読み込み元と書き込み先を同じにすることも可能ですが別々の方が安全です。
 
 __※引数を都度書き換えて、別のメタデータファイルに書き込むと安全です。__
-

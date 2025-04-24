@@ -82,6 +82,7 @@ cp .\bitsandbytes_windows\*.dll .\venv\Lib\site-packages\bitsandbytes\
 cp .\bitsandbytes_windows\cextension.py .\venv\Lib\site-packages\bitsandbytes\cextension.py
 cp .\bitsandbytes_windows\main.py .\venv\Lib\site-packages\bitsandbytes\cuda_setup\main.py
 -->
+
 Answers to accelerate config:
 
 ```txt
@@ -134,24 +135,31 @@ The majority of scripts is licensed under ASL 2.0 (including codes from Diffuser
 
 [BLIP](https://github.com/salesforce/BLIP): BSD-3-Clause
 
-
 ## Change History
 
-### Sep 13, 2024 / 2024-09-13: 
+### Sep 13, 2024 / 2024-09-13:
 
 - `sdxl_merge_lora.py` now supports OFT. Thanks to Maru-mee for the PR [#1580](https://github.com/kohya-ss/sd-scripts/pull/1580). 
+
 - `svd_merge_lora.py` now supports LBW. Thanks to terracottahaniwa. See PR [#1575](https://github.com/kohya-ss/sd-scripts/pull/1575) for details.
+
 - `sdxl_merge_lora.py` also supports LBW. 
+
 - See [LoRA Block Weight](https://github.com/hako-mikan/sd-webui-lora-block-weight) by hako-mikan for details on LBW.
+
 - These will be included in the next release.
 
 - `sdxl_merge_lora.py` が OFT をサポートされました。PR [#1580](https://github.com/kohya-ss/sd-scripts/pull/1580) Maru-mee 氏に感謝します。
+
 - `svd_merge_lora.py` で LBW がサポートされました。PR [#1575](https://github.com/kohya-ss/sd-scripts/pull/1575) terracottahaniwa 氏に感謝します。
+
 - `sdxl_merge_lora.py` でも LBW がサポートされました。
+
 - LBW の詳細は hako-mikan 氏の [LoRA Block Weight](https://github.com/hako-mikan/sd-webui-lora-block-weight) をご覧ください。
+
 - 以上は次回リリースに含まれます。
 
-### Jun 23, 2024 / 2024-06-23: 
+### Jun 23, 2024 / 2024-06-23:
 
 - Fixed `cache_latents.py` and `cache_text_encoder_outputs.py` not working. (Will be included in the next release.)
 
@@ -337,14 +345,15 @@ PR 内でいくつかの比較が共有されています。この機能を試�
 The LoRA supported by `train_network.py` has been named to avoid confusion. The documentation has been updated. The following are the names of LoRA types in this repository.
 
 1. __LoRA-LierLa__ : (LoRA for __Li__ n __e__ a __r__  __La__ yers)
-
+   
     LoRA for Linear layers and Conv2d layers with 1x1 kernel
 
 2. __LoRA-C3Lier__ : (LoRA for __C__ olutional layers with __3__ x3 Kernel and  __Li__ n __e__ a __r__ layers)
-
+   
     In addition to 1., LoRA for Conv2d layers with 3x3 kernel 
-    
+
 LoRA-LierLa is the default LoRA type for `train_network.py` (without `conv_dim` network arg). 
+
 <!-- 
 LoRA-LierLa can be used with [our extension](https://github.com/kohya-ss/sd-webui-additional-networks) for AUTOMATIC1111's Web UI, or with the built-in LoRA feature of the Web UI.
 
@@ -352,6 +361,7 @@ To use LoRA-C3Lier with Web UI, please use our extension.
 -->
 
 ### Sample image generation during training
+
   A prompt file might look like this, for example
 
 ```
@@ -364,11 +374,16 @@ masterpiece, best quality, 1boy, in business suit, standing at street, looking b
 
   Lines beginning with `#` are comments. You can specify options for the generated image with options like `--n` after the prompt. The following can be used.
 
-  * `--n` Negative prompt up to the next option.
-  * `--w` Specifies the width of the generated image.
-  * `--h` Specifies the height of the generated image.
-  * `--d` Specifies the seed of the generated image.
-  * `--l` Specifies the CFG scale of the generated image.
-  * `--s` Specifies the number of steps in the generation.
+* `--n` Negative prompt up to the next option.
 
+* `--w` Specifies the width of the generated image.
+
+* `--h` Specifies the height of the generated image.
+
+* `--d` Specifies the seed of the generated image.
+
+* `--l` Specifies the CFG scale of the generated image.
+
+* `--s` Specifies the number of steps in the generation.
+  
   The prompt weighting such as `( )` and `[ ]` are working.
