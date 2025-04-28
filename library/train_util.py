@@ -73,6 +73,8 @@ import library.sai_model_spec as sai_model_spec
 import library.deepspeed_utils as deepspeed_utils
 from library.utils import setup_logging
 
+import library.mep as mep
+
 setup_logging()
 import logging
 
@@ -915,7 +917,7 @@ class BaseDataset(torch.utils.data.Dataset):
             logger.info(f"mean ar error (without repeats): {mean_img_ar_error}")
 
         # データ参照用indexを作る。このindexはdatasetのshuffleに用いられる
-        self.buckets_indices: List(BucketBatchIndex) = []
+        self.buckets_indices: List[BucketBatchIndex] = []
         for bucket_index, bucket in enumerate(self.bucket_manager.buckets):
             batch_count = int(math.ceil(len(bucket) / self.batch_size))
             for batch_index in range(batch_count):
@@ -1491,8 +1493,15 @@ class DreamBoothDataset(BaseDataset):
                 logger.warning(f"not directory: {subset.image_dir}")
                 return [], [], []
 
-            info_cache_file = os.path.join(subset.image_dir, self.IMAGE_INFO_CACHE_FILE)
+            info_cache_file: str = os.path.join(subset.image_dir, self.IMAGE_INFO_CACHE_FILE)
             use_cached_info_for_subset = subset.cache_info
+            if use_cached_info_for_subset:
+                mep_cache_file: str = os.path.join(subset.image_dir, mep.MetadataFilename)
+                if not os.path.isfile(info_cache_file) and os.path.isfile(mep_cache_file):
+                    logger.info(f"【】】】】 Using MEP metadata file.")
+                    if mep.cipher is None:
+                        raise Exception("【】】】】 Cipher is None!!!! please pass mep_key")
+                    info_cache_file = mep_cache_file
             if use_cached_info_for_subset:
                 logger.info(
                     f"using cached image info for this subset / このサブセットで、キャッシュされた画像情報を使います: {info_cache_file}"
@@ -1505,9 +1514,22 @@ class DreamBoothDataset(BaseDataset):
                     use_cached_info_for_subset = False
 
             if use_cached_info_for_subset:
-                # json: {`img_path`:{"caption": "caption...", "resolution": [width, height]}, ...}
-                with open(info_cache_file, "r", encoding="utf-8") as f:
-                    metas = json.load(f)
+                if info_cache_file.endswith(mep.FileSuffix):
+                    mepJson = mep.ReadJSON(info_cache_file)
+                    fn1 = os.path.join(subset.image_dir, list(mepJson.keys())[0])
+                    # try read one image
+                    _ = mep.ReadImage(fn1)
+                    metas = {}
+                    for key, item in mepJson.items():
+                        fn = os.path.join(subset.image_dir, key)
+                        metas[fn] = item
+                    logger.info(
+                        f"【【【】】MEP ReadJSON: Got images: {len(metas)}"
+                    )
+                else:
+                    # json: {`img_path`:{"caption": "caption...", "resolution": [width, height]}, ...}
+                    with open(info_cache_file, "r", encoding="utf-8") as f:
+                        metas = json.load(f)
                 img_paths = list(metas.keys())
                 sizes = [meta["resolution"] for meta in metas.values()]
 
@@ -2346,7 +2368,10 @@ def load_arbitrary_dataset(args, tokenizer) -> MinimalDataset:
 
 
 def load_image(image_path):
-    image = Image.open(image_path)
+    if image_path.endswith(mep.FileSuffix):
+        image = mep.ReadImage(image_path)
+    else:
+        image = Image.open(image_path)
     if not image.mode == "RGB":
         image = image.convert("RGB")
     img = np.array(image, np.uint8)
