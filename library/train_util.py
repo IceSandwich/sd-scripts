@@ -1530,8 +1530,19 @@ class DreamBoothDataset(BaseDataset):
                     # json: {`img_path`:{"caption": "caption...", "resolution": [width, height]}, ...}
                     with open(info_cache_file, "r", encoding="utf-8") as f:
                         metas = json.load(f)
-                img_paths = list(metas.keys())
-                sizes = [meta["resolution"] for meta in metas.values()]
+                # img_paths = list(metas.keys())
+                # sizes = [meta["resolution"] for meta in metas.values()]
+
+                img_paths = []
+                sizes = []
+                captions = []
+                missing_captions = []
+                for key, value in metas.items():
+                    img_paths.append(key)
+                    sizes.append(value["resolution"])
+                    captions.append(value["caption"])
+                    if value["caption"] is None or value["caption"] == "":
+                        missing_captions.append(key)
 
                 # we may need to check image size and existence of image files, but it takes time, so user should check it before training
             else:
@@ -1541,8 +1552,9 @@ class DreamBoothDataset(BaseDataset):
             logger.info(f"found directory {subset.image_dir} contains {len(img_paths)} image files")
 
             if use_cached_info_for_subset:
-                captions = [meta["caption"] for meta in metas.values()]
-                missing_captions = [img_path for img_path, caption in zip(img_paths, captions) if caption is None or caption == ""]
+                pass
+                # captions = [meta["caption"] for meta in metas.values()]
+                # missing_captions = [img_path for img_path, caption in zip(img_paths, captions) if caption is None or caption == ""]
             else:
                 # 画像ファイルごとにプロンプトを読み込み、もしあればそちらを使う
                 captions = []
