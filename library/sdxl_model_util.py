@@ -178,7 +178,7 @@ def load_models_from_sdxl_checkpoint(model_version, ckpt_path, map_location, dty
         else:
             try:
                 state_dict = load_file(ckpt_path, device=map_location)
-            except:
+            except Exception as e:
                 state_dict = load_file(ckpt_path)  # prevent device invalid Error
         epoch = None
         global_step = None

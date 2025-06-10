@@ -972,7 +972,11 @@ def load_checkpoint_with_text_encoder_conversion(ckpt_path, device="cpu"):
 
     if is_safetensors(ckpt_path):
         checkpoint = None
-        state_dict = load_file(ckpt_path)  # , device) # may causes error
+        try:
+            state_dict = load_file(ckpt_path, device) # may causes error
+        except Exception as e:
+            logger.error(f"Cannot directly load safetensors into device: {e}. Try to load into cpu device.")
+            state_dict = load_file(ckpt_path)
     else:
         checkpoint = torch.load(ckpt_path, map_location=device)
         if "state_dict" in checkpoint:
@@ -1278,12 +1282,14 @@ def load_vae(vae_id, dtype):
     # local
     vae_config = create_vae_diffusers_config()
 
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+
     if vae_id.endswith(".bin"):
         # SD 1.5 VAE on Huggingface
-        converted_vae_checkpoint = torch.load(vae_id, map_location="cpu")
+        converted_vae_checkpoint = torch.load(vae_id, map_location=device)
     else:
         # StableDiffusion
-        vae_model = load_file(vae_id, "cpu") if is_safetensors(vae_id) else torch.load(vae_id, map_location="cpu")
+        vae_model = load_file(vae_id, device) if is_safetensors(vae_id) else torch.load(vae_id, map_location=device)
         vae_sd = vae_model["state_dict"] if "state_dict" in vae_model else vae_model
 
         # vae only or full model
