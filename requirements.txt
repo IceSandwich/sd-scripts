@@ -7,6 +7,7 @@ opencv-python==4.8.1.78
 einops==0.7.0
 pytorch-lightning==1.9.0
 bitsandbytes==0.44.0
+peft==0.13.2
 prodigyopt==1.0
 lion-pytorch==0.0.6
 tensorboard
@@ -37,6 +38,6 @@ imagesize==1.4.1
 # open clip for SDXL
 # open-clip-torch==2.20.0
 # For logging
-rich==13.7.0
+# rich==13.7.0
 # for kohya_ss library
 -e .
