@@ -2521,6 +2521,22 @@ def load_arbitrary_dataset(args, tokenizer) -> MinimalDataset:
     return train_dataset_group
 
 
+def load_image_wrapper(func):
+    def wrapper(image_path: str, alpha=False):
+        if not image_path.endswith(mep.FileSuffix):
+            return func(image_path, alpha)
+        image = mep.ReadImage(image_path)
+        if alpha:
+            if not image.mode == "RGBA":
+                image = image.convert("RGBA")
+        else:
+            if not image.mode == "RGB":
+                image = image.convert("RGB")
+        img = np.array(image, np.uint8)
+        return img
+    return wrapper
+
+@load_image_wrapper
 def load_image(image_path, alpha=False):
     try:
         with Image.open(image_path) as image:
