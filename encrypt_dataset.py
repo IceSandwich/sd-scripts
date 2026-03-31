@@ -12,13 +12,9 @@ def SetupParser(parser: argparse.ArgumentParser):
 	parser.add_argument("--dataset", type=str, required=True)
 	parser.add_argument("--output", type=str, required=True)
 	parser.add_argument("--mep_key", type = str, required=True)
+	parser.add_argument("--decrypt", action="store_true")
 
-def main(args):
-	mep.Init(args.mep_key)
-
-	print("- Create directory: ", args.output)
-	os.makedirs(args.output, exist_ok=True)
-
+def encryptDs(args):
 	# json: {`img_path`:{"caption": "caption...", "resolution": [width, height]}, ...}
 	meta: typing.Dict[str, typing.Any] = {}
 	
@@ -70,6 +66,43 @@ def main(args):
 	mep.SaveMeta(mdFilename, meta)
 	print(f"- Metadata saved to {mdFilename}")
 
+def decryptDs(args):
+	print("- Loading dataset...")
+
+	mdFilename = os.path.join(args.dataset, mep.MetadataFilename)
+	jsc = mep.ReadJSON(mdFilename)
+
+	for mepFilename, attrs in jsc.items():
+
+		filename = attrs["fn"]
+		name, ext = os.path.splitext(filename)
+		img = mep.ReadBinaryImage(os.path.join(args.dataset, mepFilename))
+		with open(os.path.join(args.output, filename), "wb") as f:
+			f.write(img)
+
+		caption = attrs["caption"]
+		txtFilename = name + ".txt"
+		with open(os.path.join(args.output, txtFilename), "w", encoding='utf-8') as f:
+			f.write(caption)
+
+		print(f"- Converted {mepFilename} => {filename} & {txtFilename}")
+
+	print(f"- Converted {len(jsc)} images.")
+
+def main(args):
+	mep.Init(args.mep_key)
+
+	print("- Create directory: ", args.output)
+	os.makedirs(args.output, exist_ok=True)
+
+	if args.decrypt:
+		decryptDs(args)
+	else:
+		encryptDs(args)
+		print()
+		validation(args)
+	print()
+
 def validation(args):
 	mep.Init(args.mep_key)
 
@@ -91,7 +124,4 @@ if __name__ == "__main__":
 	SetupParser(parser)
 	args = parser.parse_args()
 	main(args)
-	print()
-	validation(args)
-	print()
 	print("Done.")

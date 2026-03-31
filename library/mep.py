@@ -21,7 +21,7 @@ def Init(mep_key: typing.Optional[str]):
 	else:
 		print("【】】】】 Cipher is not used.")
 
-def ReadJSON(filename: str):
+def ReadJSON(filename: str) -> typing.Dict[str, typing.Dict]:
 	assert(cipher is not None)
 	with open(filename, 'rb') as f:
 		data = f.read()
@@ -30,12 +30,16 @@ def ReadJSON(filename: str):
 	ret = json.loads(data.decode('utf-8'))
 	return ret
 
-def ReadImage(filename: str):
+def ReadBinaryImage(filename: str):
 	assert(cipher is not None)
 	with open(filename, 'rb') as f:
 		data = f.read()
 		cipher.ChangeKey(key)
 		data = cipher.Decrypt(data)
+	return data
+
+def ReadImage(filename: str):
+	data = ReadBinaryImage(filename)
 	buf = io.BytesIO(data)
 	img = Image.open(buf)
 	return img

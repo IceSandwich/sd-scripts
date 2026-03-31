@@ -1,4 +1,7 @@
 try:
+	import sys, os
+	sys.path.append(os.path.abspath('.'))
+
 	from sdxl_train_network import setup_parser, SdxlNetworkTrainer
 	from library.train_util import read_config_from_file
 
@@ -10,7 +13,7 @@ try:
 		trainer = SdxlNetworkTrainer()
 		trainer.train(args)
 
-except BaseException:
+except BaseException as e:
 	import sys
 	import traceback
 	import re

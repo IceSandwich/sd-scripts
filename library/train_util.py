@@ -4776,9 +4776,9 @@ def load_target_model(args, weight_dtype, accelerator, unet_use_linear_projectio
             )
             # work on low-ram device
             if args.lowram:
-                text_encoder.to(accelerator.device)
-                unet.to(accelerator.device)
-                vae.to(accelerator.device)
+                text_encoder = text_encoder.to(accelerator.device)
+                unet = unet.to(accelerator.device)
+                vae = vae.to(accelerator.device)
 
             clean_memory_on_device(accelerator.device)
         accelerator.wait_for_everyone()
