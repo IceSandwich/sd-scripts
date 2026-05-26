@@ -155,6 +155,12 @@ def _load_state_dict_on_device(model, state_dict, device, dtype=None):
         for k in list(state_dict.keys()):
             set_module_tensor_to_device(model, k, device, value=state_dict.pop(k), dtype=dtype)
         return "<All keys matched successfully>"
+    
+    if set(['text_model.' + x for x in missing_keys]).issubset(set(unexpected_keys)):
+        raise RuntimeError(f"If you encounter an issue here, you need to downgrade your transformer. DONOT use the transformer 5.8.1, use 4 instead.")
+        # for k in list(model.state_dict().keys()):
+        #     set_module_tensor_to_device(model, k, device, value=state_dict.pop('text_model.' + k), dtype=dtype)
+        # return "<All keys matched successfully>"
 
     # error_msgs
     error_msgs: List[str] = []
