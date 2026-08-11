@@ -520,6 +520,8 @@ class LatentsCachingStrategy:
         else:
             flipped_latents = [None] * len(latents_tensors)
 
+        grad_x, grad_y = get_sobel_gradients(img_tensor)
+
         # for info, latents, flipped_latent, alpha_mask in zip(image_infos, latents_tensors, flipped_latents, alpha_masks):
         for i in range(len(image_infos)):
             info = image_infos[i]
@@ -528,13 +530,17 @@ class LatentsCachingStrategy:
             alpha_mask = alpha_masks[i]
             original_size = original_sizes[i]
             crop_ltrb = crop_ltrbs[i]
+            ice_bucket = {
+                "grad_x": grad_x[i],
+                "grad_y": grad_y[i],
+            }
 
             latents_size = latents.shape[-2:]  # H, W (supports both 4D and 5D latents)
             key_reso_suffix = f"_{latents_size[0]}x{latents_size[1]}" if multi_resolution else ""  # e.g. "_32x64", HxW
 
             if self.cache_to_disk:
                 self.save_latents_to_disk(
-                    info.latents_npz, latents, original_size, crop_ltrb, flipped_latent, alpha_mask, key_reso_suffix
+                    info.latents_npz, latents, original_size, crop_ltrb, flipped_latent, alpha_mask, key_reso_suffix, ice_bucket=ice_bucket
                 )
             else:
                 info.latents_original_size = original_size
@@ -544,9 +550,11 @@ class LatentsCachingStrategy:
                     info.latents_flipped = flipped_latent
                 info.alpha_mask = alpha_mask
 
+                info.ice_bucket = ice_bucket
+
     def load_latents_from_disk(
         self, npz_path: str, bucket_reso: Tuple[int, int]
-    ) -> Tuple[Optional[np.ndarray], Optional[List[int]], Optional[List[int]], Optional[np.ndarray], Optional[np.ndarray]]:
+    ) -> Tuple[Optional[np.ndarray], Optional[List[int]], Optional[List[int]], Optional[np.ndarray], Optional[np.ndarray], Optional[dict[str, np.ndarray]]]:
         """
         For single resolution architectures (currently no architecture is single resolution specific). Kept for reference.
 
@@ -567,7 +575,7 @@ class LatentsCachingStrategy:
 
     def _default_load_latents_from_disk(
         self, latents_stride: Optional[int], npz_path: str, bucket_reso: Tuple[int, int]
-    ) -> Tuple[Optional[np.ndarray], Optional[List[int]], Optional[List[int]], Optional[np.ndarray], Optional[np.ndarray]]:
+    ) -> Tuple[Optional[np.ndarray], Optional[List[int]], Optional[List[int]], Optional[np.ndarray], Optional[np.ndarray], Optional[dict[str, np.ndarray]]]:
         """
         Args:
             latents_stride (Optional[int]): Stride for latents. If None, load all latents.
@@ -607,7 +615,8 @@ class LatentsCachingStrategy:
         crop_ltrb = npz["crop_ltrb" + key_reso_suffix].tolist()
         flipped_latents = npz["latents_flipped" + key_reso_suffix] if "latents_flipped" + key_reso_suffix in npz else None
         alpha_mask = npz["alpha_mask" + key_reso_suffix] if "alpha_mask" + key_reso_suffix in npz else None
-        return latents, original_size, crop_ltrb, flipped_latents, alpha_mask
+        ice_bucket = npz["ice_bucket"] if "ice_bucket" in npz else None
+        return latents, original_size, crop_ltrb, flipped_latents, alpha_mask, ice_bucket
 
     def save_latents_to_disk(
         self,
@@ -618,6 +627,7 @@ class LatentsCachingStrategy:
         flipped_latents_tensor=None,
         alpha_mask=None,
         key_reso_suffix="",
+        ice_bucket: Optional[dict[str, torch.Tensor]] = None,
     ):
         """
         Args:
@@ -648,4 +658,43 @@ class LatentsCachingStrategy:
             kwargs["latents_flipped" + key_reso_suffix] = flipped_latents_tensor.float().cpu().numpy()
         if alpha_mask is not None:
             kwargs["alpha_mask" + key_reso_suffix] = alpha_mask.float().cpu().numpy()
+
+        if ice_bucket:
+            for k in ice_bucket.keys():
+                if type(ice_bucket[k]) == torch.Tensor:
+                    ice_bucket[k] = ice_bucket[k].float().cpu().numpy()
+            kwargs["ice_bucket"] = ice_bucket
         np.savez(npz_path, **kwargs)
+
+def get_sobel_gradients(img_tensor: torch.Tensor):
+    """
+    计算输入图像 [B, 3, H, W] 的 Sobel 梯度 grad_x 和 grad_y
+    
+    参数:
+        img_tensor: Tensor, 形状为 [B, 3, H, W]
+    返回:
+        grad_x: Tensor, 形状为 [B, 3, H, W]
+        grad_y: Tensor, 形状为 [B, 3, H, W]
+    """
+    device = img_tensor.device
+    dtype = img_tensor.dtype
+
+    # 定义 3x3 Sobel 算子
+    sobel_x = torch.tensor([[-1.,  0.,  1.],
+                            [-2.,  0.,  2.],
+                            [-1.,  0.,  1.]], device=device, dtype=dtype)
+
+    sobel_y = torch.tensor([[-1., -2., -1.],
+                            [ 0.,  0.,  0.],
+                            [ 1.,  2.,  1.]], device=device, dtype=dtype)
+
+    # 变形为 [out_channels, in_channels/groups, kH, kW] -> [3, 1, 3, 3]
+    kernel_x = sobel_x.view(1, 1, 3, 3).repeat(3, 1, 1, 1)
+    kernel_y = sobel_y.view(1, 1, 3, 3).repeat(3, 1, 1, 1)
+
+    # 使用 groups=3 进行逐通道卷积，padding=1 保证输出 H, W 保持不变
+    import torch.nn.functional as F
+    grad_x = F.conv2d(img_tensor, kernel_x, padding=1, groups=3)
+    grad_y = F.conv2d(img_tensor, kernel_y, padding=1, groups=3)
+
+    return grad_x, grad_y

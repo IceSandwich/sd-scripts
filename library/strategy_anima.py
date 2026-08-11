@@ -271,7 +271,7 @@ class AnimaLatentsCachingStrategy(LatentsCachingStrategy):
 
     def load_latents_from_disk(
         self, npz_path: str, bucket_reso: Tuple[int, int]
-    ) -> Tuple[Optional[np.ndarray], Optional[List[int]], Optional[List[int]], Optional[np.ndarray], Optional[np.ndarray]]:
+    ) -> Tuple[Optional[np.ndarray], Optional[List[int]], Optional[List[int]], Optional[np.ndarray], Optional[np.ndarray], Optional[dict[str, np.ndarray]]]:
         return self._default_load_latents_from_disk(8, npz_path, bucket_reso)
 
     def cache_batch_latents(self, vae, image_infos: List, flip_aug: bool, alpha_mask: bool, random_crop: bool):

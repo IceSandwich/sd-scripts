@@ -471,6 +471,29 @@ class NetworkTrainer:
             loss = apply_masked_loss(loss, batch)
         loss = loss.mean(dim=list(range(1, loss.ndim)))  # mean over all dims except batch
 
+        if 'grad_loss' in args.ice_features.split(','):
+            # target = noise - latents, v*=\sigma - x_0
+            # latents = noise - target, \hat{x_o} = \sigma - \hat{v*} <- noise_pred
+            if not hasattr(self, "ice_print_once"):
+                self.ice_print_once = []
+            if 'grad_loss' not in self.ice_print_once:
+                self.ice_print_once.append('grad_loss')
+                print("Use grad loss")
+            if "ice_bucket-grad_x" not in batch or "ice_bucket-grad_y" not in batch:
+                raise Exception(f"Cannot find ice_bucket grad in batch, current batch has: {batch.keys()}")
+            noise = target + latents
+            pred_latent = noise - noise_pred
+            pred_image = vae.decode_to_pixels(pred_latent)
+            grad_x, grad_y = strategy_base.get_sobel_gradients(pred_image)
+            gt_gradx, gt_grady = batch["ice_bucket-grad_x"], batch["ice_bucket-grad_y"]
+            ts_factor = 1.0 - timesteps
+            if 'ts' not in self.ice_print_once:
+                self.ice_print_once.append('ts')
+                print("DEBUG==== ts: ", timesteps)
+            ctrl_factor = 0.5
+            loss_rgbGrad = train_util.conditional_loss(grad_x.float(), gt_gradx.float(), 'l1', "none") + train_util.conditional_loss(grad_y.float(), gt_grady.float(), 'l1', "none") / (gt_gradx.shape[1] * gt_gradx.shape[2] * gt_gradx.shape[3])
+            loss = loss + ctrl_factor * ts_factor * loss_rgbGrad
+
         loss_weights = batch["loss_weights"]  # 各sampleごとのweight
         loss = loss * loss_weights
 
@@ -617,7 +640,8 @@ class NetworkTrainer:
             if val_dataset_group is not None:
                 val_dataset_group.new_cache_latents(vae, accelerator)
 
-            vae.to("cpu")
+            if not args.ice_features:
+                vae.to("cpu")
             clean_memory_on_device(accelerator.device)
 
             accelerator.wait_for_everyone()
@@ -1076,6 +1100,8 @@ class NetworkTrainer:
 
             for dataset in train_dataset_group.datasets:
                 is_dreambooth_dataset = isinstance(dataset, DreamBoothDataset)
+                if isinstance(dataset, DreamBoothDataset) and args.ice_features:
+                    dataset.ice_features = args.ice_features
                 dataset_metadata = {
                     "is_dreambooth": is_dreambooth_dataset,
                     "batch_size_per_device": dataset.batch_size,
@@ -1901,6 +1927,12 @@ def setup_parser() -> argparse.ArgumentParser:
         type=int,
         default=None,
         help="Max number of validation dataset items processed. By default, validation will run the entire validation dataset / 処理される検証データセット項目の最大数。デフォルトでは、検証は検証データセット全体を実行します",
+    )
+
+    parser.add_argument(
+        "--ice_features",
+        type=str,
+        default="",
     )
     return parser
 

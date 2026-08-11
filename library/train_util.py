@@ -213,7 +213,8 @@ class ImageInfo:
 
         self.alpha_mask: Optional[torch.Tensor] = None  # alpha mask can be flipped in runtime
         self.resize_interpolation: Optional[str] = None
-
+        
+        self.ice_bucket: Optional[Dict[str, torch.Tensor]] = None
 
 class BucketManager:
     def __init__(self, no_upscale, max_reso, min_size, max_size, reso_steps) -> None:
@@ -1587,6 +1588,7 @@ class BaseDataset(torch.utils.data.Dataset):
         custom_attributes = []
         masks = []
         masked_images = []
+        ice_buckets = {}
 
         for image_key in bucket[image_index : image_index + bucket_batch_size]:
             image_info = self.image_data[image_key]
@@ -1612,7 +1614,7 @@ class BaseDataset(torch.utils.data.Dataset):
 
                 image = None
             elif image_info.latents_npz is not None:  # FineTuningDatasetまたはcache_latents_to_disk=Trueの場合
-                latents, original_size, crop_ltrb, flipped_latents, alpha_mask = (
+                latents, original_size, crop_ltrb, flipped_latents, alpha_mask, ice_bucket = (
                     self.latents_caching_strategy.load_latents_from_disk(image_info.latents_npz, image_info.bucket_reso)
                 )
                 if flipped:
@@ -1699,6 +1701,14 @@ class BaseDataset(torch.utils.data.Dataset):
             images.append(image)
             latents_list.append(latents)
             alpha_mask_list.append(alpha_mask)
+
+            for k, v in ice_bucket.items():
+                if k not in ice_buckets:
+                    ice_buckets[k] = []
+                value = torch.FloatTensor(v)
+                if k in ['grad_x', 'grad_y'] and flipped:
+                    value = torch.flip(value, dims=[3])
+                ice_buckets[k].append(value)
 
             target_size = (image.shape[2], image.shape[1]) if image is not None else (latents.shape[2] * 8, latents.shape[1] * 8)
 
@@ -1846,6 +1856,10 @@ class BaseDataset(torch.utils.data.Dataset):
 
         if self.debug_dataset:
             example["image_keys"] = bucket[image_index : image_index + self.batch_size]
+
+        if hasattr(self, "ice_features"):
+            for k, v in ice_buckets:
+                example["ice_bucket-" + k] = torch.stack(v)
         return example
 
     def get_item_for_caching(self, bucket, bucket_batch_size, image_index):
